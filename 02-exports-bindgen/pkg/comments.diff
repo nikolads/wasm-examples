@@ -1,0 +1,60 @@
+diff --git a/pkg/wasm_lib.js b/pkg/with_comments.js
+index 4795a0f..3309cbb 100644
+--- a/pkg/wasm_lib.js
++++ b/pkg/with_comments.js
+@@ -5,6 +5,10 @@ let cachedTextDecoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: true
+ 
+ cachedTextDecoder.decode();
+ 
++// паметта в WASM е линеен масив (вектор от байтове)
++// от гледна точка на rust: pointer = индекс
++// от гледна точка на js: този вектор може да се реалокира, затова преди всеки достъп
++// се проверява дали указателят върнат от `wasm.memory.buffer` е валиден
+ let cachegetUint8Memory0 = null;
+ function getUint8Memory0() {
+     if (cachegetUint8Memory0 === null || cachegetUint8Memory0.buffer !== wasm.memory.buffer) {
+@@ -118,6 +122,28 @@ function takeObject(idx) {
+ */
+ export function greet() {
+     try {
++        // `greet` ще запише низа в посочената памет
++        //
++        // "Heap" паметта в wasm е един вектор от байтове. `8` е указател/индекс.
++        // Явно wasm_bindgen използва някакъв интервал `8..` за "output" параметри
++        //
++        // Цледното може да се види в .wat:
++        // (wasm е стеков език, `get` push-ва стойност, `store` pop-ва две стойности)
++        // ```
++        // (func $greet (type 1) (param i32)     // функцията `greet` приема един парамерър (param i32), който се достъпва като local 0
++        //     (local i32 i32 i32 i32 i32)
++        //     // ...
++        //     // ... цялата логика
++        //     // ...
++        //     local.get 0
++        //     local.get 2
++        //     i32.store offset=4      // записва local2 в паметта local0+4..local0+8
++        //     local.get 0
++        //     local.get 5
++        //     i32.store               // записва local5 в паметта local0..local0+4
++        //     // ...
++        //     )
++        // ```
+         wasm.greet(8);
+         var r0 = getInt32Memory0()[8 / 4 + 0];
+         var r1 = getInt32Memory0()[8 / 4 + 1];
+@@ -134,6 +160,7 @@ export function greet() {
+ */
+ export function add(a, b) {
+     var ret = wasm.add(a, b);
++    // грижи се за конвертирането i32 -> u32
+     return ret >>> 0;
+ }
+ 
+@@ -157,6 +184,7 @@ const uint64CvtShim = new BigUint64Array(u32CvtShim.buffer);
+ export function len_64(s) {
+     var ptr0 = passStringToWasm0(s, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+     var len0 = WASM_VECTOR_LEN;
++    // конвертира u64 до Wasm64 { pub low: u32, pub high: u32, }
+     wasm.len_64(8, ptr0, len0);
+     var r0 = getInt32Memory0()[8 / 4 + 0];
+     var r1 = getInt32Memory0()[8 / 4 + 1];

@@ -194,13 +194,47 @@ export function len_64(s) {
     return n1;
 }
 
+function _assertClass(instance, klass) {
+    if (!(instance instanceof klass)) {
+        throw new Error(`expected instance of ${klass.name}`);
+    }
+    return instance.ptr;
+}
 /**
-* @param {any} user
+* В този случай `User` е opaque type
+* @param {User} user
 * @returns {string}
 */
 export function user_info(user) {
     try {
-        wasm.user_info(8, addHeapObject(user));
+        _assertClass(user, User);
+        var ptr0 = user.ptr;
+        user.ptr = 0;
+        wasm.user_info(8, ptr0);
+        var r0 = getInt32Memory0()[8 / 4 + 0];
+        var r1 = getInt32Memory0()[8 / 4 + 1];
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_free(r0, r1);
+    }
+}
+
+/**
+* В този случай `User` е opaque type
+* @returns {User}
+*/
+export function gosho() {
+    var ret = wasm.gosho();
+    return User.__wrap(ret);
+}
+
+/**
+* @param {any} user
+* @returns {string}
+*/
+export function js_user_info(user) {
+    try {
+        wasm.js_user_info(8, addHeapObject(user));
         var r0 = getInt32Memory0()[8 / 4 + 0];
         var r1 = getInt32Memory0()[8 / 4 + 1];
         return getStringFromWasm0(r0, r1);
@@ -212,9 +246,28 @@ export function user_info(user) {
 /**
 * @returns {any}
 */
-export function gosho() {
-    var ret = wasm.gosho();
+export function js_gosho() {
+    var ret = wasm.js_gosho();
     return takeObject(ret);
+}
+
+/**
+*/
+export class User {
+
+    static __wrap(ptr) {
+        const obj = Object.create(User.prototype);
+        obj.ptr = ptr;
+
+        return obj;
+    }
+
+    free() {
+        const ptr = this.ptr;
+        this.ptr = 0;
+
+        wasm.__wbg_user_free(ptr);
+    }
 }
 
 function init(module) {
@@ -238,6 +291,9 @@ function init(module) {
     };
     imports.wbg.__wbindgen_object_drop_ref = function(arg0) {
         takeObject(arg0);
+    };
+    imports.wbg.__wbindgen_throw = function(arg0, arg1) {
+        throw new Error(getStringFromWasm0(arg0, arg1));
     };
 
     if ((typeof URL === 'function' && module instanceof URL) || typeof module === 'string' || (typeof Request === 'function' && module instanceof Request)) {
